@@ -17,7 +17,7 @@ than going via C.
 
 == Requirements
 * Ruby 1.9.1
-* LLVM 2.6 or above, compiled with shared library support <http://llvm.org/>
+* LLVM 2.6, compiled with shared library support <http://llvm.org/>
 * ruby-llvm <http://github.com/jvoorhis/ruby-llvm>
 * PortAudio <http://portaudio.com/>
 * ruby-portaudio <http://github.com/jvoorhis/ruby-portaudio>
