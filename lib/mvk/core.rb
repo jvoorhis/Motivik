@@ -1,61 +1,123 @@
 module MVK
   module Core
-    CompilationContext = Struct.new(:module, :function, :builder, :insns)
+    CompilationContext = Struct.new(:module, :function, :builder)
     
+    # Takes a list of pairs of [type, any_value] to a list of 
+    # values matching their given type.
+    def coercing(arguments)
+      yield arguments.map { |(type, expr)|
+        case type
+        when :float then Core::FloatingExpr(expr)
+        else raise "Unknown type #{type}"
+        end
+      }
+    end
+    module_function :coercing
+    
+    # Defines the public interface to floating point expressions
     module FloatingExpr
-      def FloatingExpr.const(val)
+      def self.const(val)
         FloatingConst.new(val)
+      end
+      
+      def self.sin(x)
+        FloatingApplication.new(
+          FloatingPrimitive.new(:sin, [:float]),
+          [x]
+        )
+      end
+      
+      def self.cos(x)
+        FloatingApplication.new(
+          FloatingPrimitive.new(:cos, [:float]),
+          [x]
+        )
+      end
+      
+      def self.tan(x)
+        FloatingApplication.new(
+          FloatingPrimitive.new(:tan, [:float]),
+          [x]
+        )
+      end
+      
+      def type
+        :float
       end
       
       def coerce(val)
         case val
-          when FloatingExpr then [val, self]
-          else [FloatingExpr.const(val), self]
+        when FloatingExpr then [val, self]
+        else [FloatingExpr.const(val), self]
         end
       end
       
       def -@
-        FloatingPrimitive.new(:-@, 1, [self])
+        FloatingApplication.new(
+          FloatingPrimitive.new(:-@, [:float]),
+          [self]
+        )
       end
       
       def +(rhs)
-        FloatingPrimitive.new(:+, 2, [self, rhs])
+        FloatingApplication.new(
+          FloatingPrimitive.new(:+, [:float, :float]),
+          [self, rhs]
+        )
       end
       
       def -(rhs)
-        FloatingPrimitive.new(:-, 2, [self, rhs])
+        FloatingApplication.new(
+          FloatingPrimitive.new(:-, [:float, :float]),
+          [self, rhs]
+        )
       end
       
       def *(rhs)
-        FloatingPrimitive.new(:*, 2, [self, rhs])
+        FloatingApplication.new(
+          FloatingPrimitive.new(:*, [:float, :float]),
+          [self, rhs]
+        )
       end
       
       def /(rhs)
-        FloatingPrimitive.new(:/, 2, [self, rhs])
+        FloatingApplication.new(
+          FloatingPrimitive.new(:/, [:float, :float]),
+          [self, rhs]
+        )
       end
       
       def %(rhs)
-        FloatingPrimitive.new(:%, 2, [self, rhs])
+        FloatingApplication.new(
+          FloatingPrimitive.new(:fmod, [:float, :float]),
+          [self, rhs]
+        )
       end
       
       def **(rhs)
-        FloatingPrimitive.new(:**, 2, [self, rhs])
+        FloatingApplication.new(
+          FloatingPrimitive.new(:pow, [:float, :float]),
+          [self, rhs]
+        )
       end
     end
     
+    # Coerce a value to be a FloatingExpr. Interface is analagous to Kernel#Array.
     def FloatingExpr(expr)
       FloatingExpr.const(0).coerce(expr)[0]
     end
     module_function :FloatingExpr
     
+    # A floating value containing opaque data
     class FloatingData < Struct.new(:data)
       include FloatingExpr
       
       def compile(context)
-        [data, context]
+        data
       end
     end
     
+    # A literal floating point constant
     class FloatingConst < Struct.new(:value)
       include FloatingExpr
       
@@ -64,89 +126,71 @@ module MVK
       end
       
       def compile(context)
-        defn = context.insns[self] ||= LLVM::Double(value)
-        [defn, context]
+        LLVM::Double(value)
       end
     end
     
-    class FloatingPrimitive < Struct.new(:name, :arity, :parameters)
+    # An application of a function yielding a floating point value
+    class FloatingApplication < Struct.new(:function, :args)
       include FloatingExpr
       
-      def initialize(name, arity, parameters)
-        super name, arity, parameters.map { |p| Core::FloatingExpr(p) }
-      end
-      
       def compile(context)
-        defn = context.insns[self] ||= case [name, arity]
-          when [:-@, 1]
-            context.builder.neg(
-              parameters[0].compile(context)[0])
-          when [:+, 2]
-            context.builder.fadd(
-              parameters[0].compile(context)[0],
-              parameters[1].compile(context)[0])
-          when [:-, 2]
-            context.builder.fsub(
-              parameters[0].compile(context)[0],
-              parameters[1].compile(context)[0])
-          when [:*, 2]
-            context.builder.fmul(
-              parameters[0].compile(context)[0],
-              parameters[1].compile(context)[0])
-          when [:/, 2]
-            context.builder.fdiv(
-              parameters[0].compile(context)[0],
-              parameters[1].compile(context)[0])
-          when [:%, 2]
-            context.builder.call(
-              context.module.functions[:fmod],
-              parameters[0].compile(context)[0],
-              parameters[1].compile(context)[0])
-          when [:**, 2]
-            context.builder.call(
-              context.module.functions[:pow],
-              parameters[0].compile(context)[0],
-              parameters[1].compile(context)[0])
-          when [:sin, 1]
-            context.builder.call(
-              context.module.functions[:sin],
-              parameters[0].compile(context)[0])
-          when [:cos, 1]
-            context.builder.call(
-              context.module.functions[:cos],
-              parameters[0].compile(context)[0])
-          when [:tan, 1]
-            context.builder.call(
-              context.module.functions[:tan],
-              parameters[0].compile(context)[0])
-          else
-            raise NameError, "#{name}/#{arity} is undefined"
+        Core.coercing(function.arg_types.zip(args)) do |args|
+          function.apply(
+            context,
+            args.map { |arg| arg.compile(context) }
+          )
         end
-        
-        [defn, context]
       end
     end
     
+    # A function yielding a floating point value
+    class FloatingPrimitive < Struct.new(:name, :arg_types)
+      def apply(context, args)
+        case name
+        when :-@
+          context.builder.neg(*args)
+        when :+
+          context.builder.fadd(*args)
+        when :-
+          context.builder.fsub(*args)
+        when :*
+          context.builder.fmul(*args)
+        when :/
+          context.builder.fdiv(*args)
+        else
+          if function = context.module.functions[name]
+            context.builder.call(function, *args)
+          else
+            raise "Undefined function #{name}"
+          end
+        end
+      end
+    end
+    
+    # An IO action
     module Action
       def seq(rhs)
         Seq.new(self, rhs)
       end
     end
     
+    # A compound action that executes its first action and then its second
     class Seq < Struct.new(:lhs, :rhs)
       include Action
       
       def compile(context)
-        context_ = lhs.compile(context)[1]
-        rhs.compile(context_)
+        lhs.compile(context)
+        rhs.compile(context)
       end
     end
     
+    # Store a value in the sample buffer
     class StoreSample < Struct.new(:floating_expr, :buffer, :frame, :channel, :channel_count)
       include Action
       
       def compile(context)
-        sample64     = floating_expr.compile(context)[0]
+        sample64     = floating_expr.compile(context)
         sample32     = context.builder.fp_trunc(
                          sample64,
                          LLVM::Float)
@@ -161,16 +205,15 @@ module MVK
                          context.builder.mul(
                            frame,
                            frame_width))
-        defn         = context.builder.store(
-                         sample32,
-                         context.builder.int2ptr(
-                           context.builder.add(
-                             context.builder.ptr2int(
-                               buffer,
-                               LLVM::Int),
-                             sample_index),
-                           LLVM::Pointer(LLVM::Float)))
-        [defn, context]
+        context.builder.store(
+          sample32,
+          context.builder.int2ptr(
+            context.builder.add(
+              context.builder.ptr2int(
+                buffer,
+                LLVM::Int),
+              sample_index),
+            LLVM::Pointer(LLVM::Float)))
       end
     end
   end # Core

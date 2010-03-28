@@ -86,19 +86,19 @@ module MVK
   
   def sin(x)
     FloatingSignal.lift(FloatingSignal(x)) { |x|
-      Core::FloatingPrimitive.new(:sin, 1, [x])
+      Core::FloatingExpr.sin(x)
     }
   end
   
   def cos(x)
     FloatingSignal.lift(FloatingSignal(x)) { |x|
-      Core::FloatingPrimitive.new(:cos, 1, [x])
+      Core::FloatingExpr.cos(x)
     }
   end
   
   def tan(x)
     FloatingSignal.lift(FloatingSignal(x)) { |x|
-      Core::FloatingPrimitive.new(:tan, 1, [x])
+      Core::FloatingExpr.tan(x)
     }
   end
 end # MVK

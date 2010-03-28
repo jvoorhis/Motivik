@@ -77,7 +77,7 @@ module MVK
               Core::StoreSample.new(expr, output, frame, channel, outs.size)
             }.reduce(:seq)
             
-            context = Core::CompilationContext.new(@module, cback, b, {})
+            context = Core::CompilationContext.new(@module, cback, b)
             action.compile(context)
             
             b.store(
