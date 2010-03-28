@@ -33,7 +33,7 @@ module MVK
     end
     
     def build
-      mod = LLVM::Module.create_with_name("MVK")
+      mod = LLVM::Module.create("MVK")
       declare_types!(mod)
       declare_functions!(mod)
       mod
