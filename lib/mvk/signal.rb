@@ -1,4 +1,5 @@
 module MVK
+
   class Signal
     def self.const(val)
       new { |state| val }
@@ -40,7 +41,7 @@ module MVK
     end
     
     def call(state)
-      Core::FloatingExpr(@f.call(state))
+      @f.call(state)
     end
     
     def -@
