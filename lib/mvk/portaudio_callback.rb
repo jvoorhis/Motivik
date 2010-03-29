@@ -74,11 +74,11 @@ module MVK
             
             action = outs.map.with_index { |sig, channel|
               expr = sig.call(now) # sample signal at current time
-              Core::StoreSample.new(expr, output, frame, channel, outs.size)
+              Core::Action.store_sample(expr, output, frame, channel, outs.size)
             }.reduce(:seq)
             
             context = Core::CompilationContext.new(@module, cback, b)
-            action.compile(context)
+            action.call(context)
             
             b.store(
               b.add(frame, LLVM::Int(1)),
