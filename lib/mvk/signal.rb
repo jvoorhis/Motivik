@@ -2,7 +2,7 @@ module MVK
 
   class Signal
     def self.const(val)
-      new { |state| val }
+      new { |t| val }
     end
     
     def const(val)
@@ -10,8 +10,10 @@ module MVK
     end
     
     def self.lift(*args, &f)
-      new { |state|
-        f.call *args.map { |a| a.call(state) }
+      new { |t|
+        f.call(*args.map { |arg|
+          FloatingSignal(arg).call(t)
+        })
       }
     end
     
@@ -23,12 +25,12 @@ module MVK
       @f = f
     end
     
-    def call(state)
-      @f.call(state)
+    def call(t)
+      @f.call(t)
     end
     
     def compose(&g)
-      self.class.new { |state| call g.call(state) }
+      self.class.new { |t| call g.call(t) }
     end
   end
   
@@ -40,8 +42,8 @@ module MVK
       end
     end
     
-    def call(state)
-      @f.call(state)
+    def call(t)
+      @f.call(t)
     end
     
     def -@
@@ -49,56 +51,55 @@ module MVK
     end
     
     def +(rhs)
-      lift(self, FloatingSignal(rhs), &:+)
+      lift(self, rhs, &:+)
     end
     
     def -(rhs)
-      lift(self, FloatingSignal(rhs), &:-)
+      lift(self, rhs, &:-)
     end
     
     def *(rhs)
-      lift(self, FloatingSignal(rhs), &:*)
+      lift(self, rhs, &:*)
     end
     
     def /(rhs)
-      lift(self, FloatingSignal(rhs), &:/)
+      lift(self, rhs, &:/)
     end
     
     def %(rhs)
-      lift(self, FloatingSignal(rhs), &:%)
+      lift(self, rhs, &:%)
     end
     
     def **(rhs)
-      lift(self, FloatingSignal(rhs), &:**)
+      lift(self, rhs, &:**)
     end
   end
+  
+  module_function
   
   def FloatingSignal(sig)
     FloatingSignal.const(0).coerce(sig)[0]
   end
-  module_function :FloatingSignal
-  
-  module_function
   
   def now
     FloatingSignal.new { |t| t }
   end
   
   def sin(x)
-    FloatingSignal.lift(FloatingSignal(x)) { |x|
+    FloatingSignal.lift(x) { |x|
       Core::FloatingExpr.sin(x)
     }
   end
   
   def cos(x)
-    FloatingSignal.lift(FloatingSignal(x)) { |x|
+    FloatingSignal.lift(x) { |x|
       Core::FloatingExpr.cos(x)
     }
   end
   
   def tan(x)
-    FloatingSignal.lift(FloatingSignal(x)) { |x|
+    FloatingSignal.lift(x) { |x|
       Core::FloatingExpr.tan(x)
     }
   end
-end # MVK
+end

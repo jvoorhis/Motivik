@@ -168,7 +168,7 @@ module MVK
       end
     end
     
-    # An IO action
+    # A side effecting action
     module Action
       def seq(rhs)
         Seq.new(self, rhs)
