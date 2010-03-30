@@ -37,8 +37,8 @@ module MVK
   class FloatingSignal < Signal
     def coerce(val)
       case val
-        when FloatingSignal then [val, self]
-        else [const(val), self]
+      when FloatingSignal then [val, self]
+      else [const(val), self]
       end
     end
     
@@ -87,19 +87,19 @@ module MVK
   
   def sin(x)
     FloatingSignal.lift(x) { |x|
-      Core::FloatingExpr.sin(x)
+      x.class.sin(x)
     }
   end
   
   def cos(x)
     FloatingSignal.lift(x) { |x|
-      Core::FloatingExpr.cos(x)
+      x.class.cos(x)
     }
   end
   
   def tan(x)
     FloatingSignal.lift(x) { |x|
-      Core::FloatingExpr.tan(x)
+      x.class.tan(x)
     }
   end
 end

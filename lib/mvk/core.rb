@@ -1,5 +1,5 @@
-require 'mvk/core/floating_expr'
-require 'mvk/core/int_expr'
+require 'mvk/core/prototype'
+require 'mvk/core/double'
 require 'mvk/core/action'
 
 module MVK

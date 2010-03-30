@@ -66,7 +66,7 @@ module MVK
           loop.build do |b|
             frame  = b.load(frame_ptr)
             phase_ = b.add(phase, frame)
-            now    = Core::FloatingData.new(
+            now    = Core::Double.data(
                        b.fdiv(
                          b.si2fp(phase_, LLVM::Double),
                          LLVM::Double(@sample_rate),
@@ -78,7 +78,7 @@ module MVK
             }.reduce(:seq)
             
             context = Core::CompilationContext.new(@module, cback, b)
-            action.call(context)
+            action.compile(context)
             
             b.store(
               b.add(frame, LLVM::Int(1)),
