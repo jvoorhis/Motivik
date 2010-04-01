@@ -22,10 +22,15 @@ module MVK
     
     EXTERN_FUNCTIONS = {
       fmod: [[LLVM::Double, LLVM::Double], LLVM::Double],
-      pow:  [[LLVM::Double, LLVM::Double], LLVM::Double],
-      sin:  [[LLVM::Double], LLVM::Double],
-      cos:  [[LLVM::Double], LLVM::Double],
-      tan:  [[LLVM::Double], LLVM::Double],
+      fmodf: [[LLVM::Double, LLVM::Double], LLVM::Double],
+      pow: [[LLVM::Double, LLVM::Double], LLVM::Double],
+      powf: [[LLVM::Double, LLVM::Double], LLVM::Double],
+      sin: [[LLVM::Double], LLVM::Double],
+      sinf: [[LLVM::Double], LLVM::Double],
+      cos: [[LLVM::Double], LLVM::Double],
+      cosf: [[LLVM::Double], LLVM::Double],
+      tan: [[LLVM::Double], LLVM::Double],
+      tanf: [[LLVM::Double], LLVM::Double],
     }
     
     def self.build

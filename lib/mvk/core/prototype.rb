@@ -13,11 +13,16 @@ module MVK
       def ==(rhs)
         name == rhs.name &&
         arg_types == rhs.arg_types &&
-        result_type = rhs.result_type
+        result_type == rhs.result_type
       end
+      alias_method :eql?, :==
       
       def hash
         [name, arg_types, result_type].hash
+      end
+      
+      def to_s
+        "<#@name [#{@arg_types * ', '}] #@result_type>"
       end
     end
   end

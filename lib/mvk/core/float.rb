@@ -4,17 +4,33 @@ module MVK
   module Core
     
     class Float < Floating
-      def self.literal(val)
+      def Float.type
+        :float
+      end
+      
+      def Float.type
+        :float
+      end
+      
+      def Float.literal(val)
         FloatLit.new(val)
       end
       
-      def self.data(data)
+      def Float.data(data)
         FloatData.new(data)
       end
       
-      def self.type
-        :float
+      def Float.apply(proto, args)
+        FloatPrimitive.new(proto, args)
       end
+      
+      def apply(proto, args)
+        Float.apply(proto, args)
+      end
+    end
+    
+    def Float(val)
+      Float.literal(0).coerce(val)[0]
     end
     
     class FloatLit < Float
@@ -38,59 +54,60 @@ module MVK
     end
     
     class FloatPrimitive < Float
-      def initialize(prototype, args)
-        unless prototype.arg_types == args.map(&:type)
-          raise TypeError, "#{args} does not satisfy #{prototype}."
-        end
-        
-        @prototype = prototype
-        @args = @args
+      def initialize(proto, args)
+        @proto = proto
+        @args = args.map { |arg|
+          Float === arg ? arg : MVK::Core::Float(arg)
+        }
       end
       
       def compile(context)
-        case @prototype
-        when Prototype.new(:sin, [:float], :float)
-          context.builder.call(
-            context.module.functions[:sinf],
-            @args[0].compile(context))
-        when Prototype.new(:cos, [:float], :float)
-          context.builder.call(
-            context.module.functions[:cosf],
-            @args[0].compile(context))
-        when Prototype.new(:tan, [:float], :float)
-          context.builder.call(
-            context.module.functions[:tanf],
-            @args[0].compile(context))
-        when Prototype.new(:-@, [:float], :float)
-          context.builder.fneg(
-            @args[0].compile(context))
-        when Prototype.new(:+, [:float, :float], :float)
-          context.builder.fadd(
-            @args[0].compile(context),
-            @args[1].compile(context))
-        when Prototype.new(:-, [:float, :float], :float)
-          context.builder.fsub(
-            @args[0].compile(context),
-            @args[1].compile(context))
-        when Prototype.new(:*, [:float, :float], :float)
-          context.builder.fmul(
-            @args[0].compile(context),
-            @args[1].compile(context))
-        when Prototype.new(:/, [:float, :float], :float)
-          context.builder.fdiv(
-            @args[0].compile(context),
-            @args[1].compile(context))
-        when Prototype.new(:%, [:float, :float], :float)
-          context.builder.fmod(
-            @args[0].compile(context),
-            @args[1].compile(context))
-        when Prototype.new(:**, [:float, :float], :float)
-          context.builder.call(
-            context.module.functions[:pow],
-            @args[0].compile(context),
-            @args[1].compile(context))
+        if impl = Core.primitives[@proto]
+          impl.call(context, *@args)
+        else
+          raise NotImplementedError, "#{@proto} is undefined."
         end
       end
+    end
+    
+    define_primitive :+, [:float, :float], :float do |c, lhs, rhs|
+      c.builder.fadd(lhs.compile(c), rhs.compile(c))
+    end
+    
+    define_primitive :-, [:float, :float], :float do |c, lhs, rhs|
+      c.builder.fadd(lhs.compile(c), rhs.compile(c))
+    end
+    
+    define_primitive :-@, [:float], :float do |c, arg|
+      c.builder.fsub(LLVM::Float(0), arg.compile(c))
+    end
+    
+    define_primitive :*, [:float], :float do |c, lhs, rhs|
+      c.builder.fmul(lhs.compile(c), rhs.compile(c))
+    end
+    
+    define_primitive :/, [:float], :float do |c, lhs, rhs|
+      c.builder.fdiv(lhs.compile(c), rhs.compile(c))
+    end
+    
+    define_primitive :%, [:float], :float do |c, lhs, rhs|
+      c.builder.call(c.module.functions[:fmodf], lhs.compile(c), rhs.compile(c))
+    end
+    
+    define_primitive :**, [:float], :float do |c, lhs, rhs|
+      c.builder.call(c.module.functions[:powf])
+    end
+    
+    define_primitive :sin, [:float], :float do |c, arg|
+      c.builder.call(c.module.functions[:sinf], arg.compile(c))
+    end
+    
+    define_primitive :cos, [:float], :float do |c, arg|
+      c.builder.call(c.module.functions[:cosf], arg.compile(c))
+    end
+    
+    define_primitive :tan, [:float], :float do |c, arg|
+      c.builder.call(c.module.functions[:tanf], arg.compile(c))
     end
   end
 end

@@ -20,17 +20,17 @@ module MVK
         DoubleData.new(data)
       end
       
-      def Double.apply(prototype, args)
-        DoublePrimitive.new(prototype, args)
+      def Double.apply(proto, args)
+        DoublePrimitive.new(proto, args)
       end
       
-      def apply(prototype, args)
-        Double.apply(prototype, args)
+      def apply(proto, args)
+        Double.apply(proto, args)
       end
     end
     
-    def Double(value)
-      Double.literal(0).coerce(value)[0]
+    def Double(val)
+      Double.literal(0).coerce(val)[0]
     end
     module_function :Double
     
@@ -55,57 +55,60 @@ module MVK
     end
     
     class DoublePrimitive < Double
-      def initialize(prototype, args)
-        @prototype = prototype
+      def initialize(proto, args)
+        @proto = proto
         @args = args.map { |arg|
           Double === arg ? arg : MVK::Core::Double(arg)
         }
       end
       
       def compile(context)
-        case @prototype
-        when Prototype.new(:sin, [:double], :double)
-          context.builder.call(
-            context.module.functions[:sin],
-            @args[0].compile(context))
-        when Prototype.new(:cos, [:double], :double)
-          context.builder.call(
-            context.module.functions[:cos],
-            @args[0].compile(context))
-        when Prototype.new(:tan, [:double], :double)
-          context.builder.call(
-            context.module.functions[:tan],
-            @args[0].compile(context))
-        when Prototype.new(:-@, [:double], :double)
-          context.builder.fneg(
-            @args[0].compile(context))
-        when Prototype.new(:+, [:double, :double], :double)
-          context.builder.fadd(
-            @args[0].compile(context),
-            @args[1].compile(context))
-        when Prototype.new(:-, [:double, :double], :double)
-          context.builder.fsub(
-            @args[0].compile(context),
-            @args[1].compile(context))
-        when Prototype.new(:*, [:double, :double], :double)
-          context.builder.fmul(
-            @args[0].compile(context),
-            @args[1].compile(context))
-        when Prototype.new(:/, [:double, :double], :double)
-          context.builder.fdiv(
-            @args[0].compile(context),
-            @args[1].compile(context))
-        when Prototype.new(:%, [:double, :double], :double)
-          context.builder.fmod(
-            @args[0].compile(context),
-            @args[1].compile(context))
-        when Prototype.new(:**, [:double, :double], :double)
-          context.builder.call(
-            context.module.functions[:pow],
-            @args[0].compile(context),
-            @args[1].compile(context))
+        if impl = Core.primitives[@proto]
+          impl.call(context, *@args)
+        else
+          raise NotImplementedError, "#{@proto} is undefined."
         end
       end
+    end
+    
+    define_primitive :+, [:double, :double], :double do |c, lhs, rhs|
+      c.builder.fadd(lhs.compile(c), rhs.compile(c))
+    end
+    
+    define_primitive :-, [:double, :double], :double do |c, lhs, rhs|
+      c.builder.fsub(lhs.compile(c), rhs.compile(c))
+    end
+    
+    define_primitive :-@, [:double], :double do |c, arg|
+      c.builder.fsub(LLVM::Double(0), arg.compile(c))
+    end
+    
+    define_primitive :*, [:double, :double], :double do |c, lhs, rhs|
+      c.builder.fmul(lhs.compile(c), rhs.compile(c))
+    end
+    
+    define_primitive :/, [:double, :double], :double do |c, lhs, rhs|
+      c.builder.fdiv(lhs.compile(c), rhs.compile(c))
+    end
+    
+    define_primitive :%, [:double, :double], :double do |c, lhs, rhs|
+      c.builder.call(c.module.functions[:fmod], lhs.compile(c), rhs.compile(c))
+    end
+    
+    define_primitive :**, [:double, :double], :double do |c, lhs, rhs|
+      c.call(c.module.functions[:pow], lhs.compile(c), rhs.compile(c))
+    end
+    
+    define_primitive :sin, [:double], :double do |c, arg|
+      c.builder.call(c.module.functions[:sin], arg.compile(c))
+    end
+    
+    define_primitive :cos, [:double], :double do |c, arg|
+      c.builder.call(c.module.functions[:cos], arg.compile(c))
+    end
+    
+    define_primitive :tan, [:double], :double do |c, arg|
+      c.builder.call(c.module.functions[:tan], arg.compile(c))
     end
   end
 end

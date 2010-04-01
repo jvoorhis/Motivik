@@ -3,15 +3,15 @@ module MVK
     
     # Defines the public interface to floating point expressions
     class Floating
-      def self.sin(x)
+      def Floating.sin(x)
         apply(Prototype.new(:sin, [type], type), [x])
       end
       
-      def self.cos(x)
+      def Floating.cos(x)
         apply(Prototype.new(:cos, [type], type), [x])
       end
       
-      def self.tan(x)
+      def Floating.tan(x)
         apply(Prototype.new(:tan, [type], type), [x])
       end
       
