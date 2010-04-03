@@ -69,8 +69,7 @@ module MVK
             now    = Core::Double.data(
                        b.fdiv(
                          b.si2fp(phase_, LLVM::Double),
-                         LLVM::Double(@sample_rate),
-                         "now"))
+                         LLVM::Double(@sample_rate)))
             
             action = outs.map.with_index { |sig, channel|
               expr = sig.call(now) # sample signal at current time

@@ -3,111 +3,94 @@ require 'mvk/core/floating'
 module MVK
   module Core
     
-    class Float < Floating
-      def Float.type
-        :float
+    module Float
+      def type
+        Float
       end
+      module_function :type
       
-      def Float.type
-        :float
+      def target_type
+        LLVM::Float.type
       end
+      module_function :target_type
       
-      def Float.literal(val)
-        FloatLit.new(val)
+      def Float.const(value)
+        Const.new(value)
       end
       
       def Float.data(data)
-        FloatData.new(data)
+        Data.new(data)
       end
       
       def Float.apply(proto, args)
-        FloatPrimitive.new(proto, args)
+        Primitive.new(proto, args)
       end
       
-      def apply(proto, args)
-        Float.apply(proto, args)
-      end
-    end
-    
-    def Float(val)
-      Float.literal(0).coerce(val)[0]
-    end
-    
-    class FloatLit < Float
-      def initialize(value)
-        @value = value.to_f
-      end
+      include Floating
       
-      def compile(context)
-        LLVM::Float(@value)
-      end
-    end
-    
-    class FloatData < Float
-      def initialize(data)
-        @data = data
-      end
-      
-      def compile(context)
-        @data
-      end
-    end
-    
-    class FloatPrimitive < Float
-      def initialize(proto, args)
-        @proto = proto
-        @args = args.map { |arg|
-          Float === arg ? arg : MVK::Core::Float(arg)
-        }
-      end
-      
-      def compile(context)
-        if impl = Core.primitives[@proto]
-          impl.call(context, *@args)
-        else
-          raise NotImplementedError, "#{@proto} is undefined."
+      class Const
+        include Float
+        
+        def initialize(value)
+          @value = value.to_f
+        end
+        
+        def compile(context)
+          LLVM::Float(@value)
         end
       end
+      
+      class Data < MVK::Data
+        include Float
+      end
+      
+      class Cond < MVK::Cond
+        include Float
+      end
+      
+      class Primitive < MVK::Primitive
+        include Float
+      end
     end
     
-    define_primitive :+, [:float, :float], :float do |c, lhs, rhs|
-      c.builder.fadd(lhs.compile(c), rhs.compile(c))
+    op :+, [Float, Float], Float do |lhs, rhs|
+      builder.fadd(lhs, rhs)
     end
     
-    define_primitive :-, [:float, :float], :float do |c, lhs, rhs|
-      c.builder.fadd(lhs.compile(c), rhs.compile(c))
+    op :-, [Float, Float], Float do |lhs, rhs|
+      builder.fadd(lhs, rhs)
     end
     
-    define_primitive :-@, [:float], :float do |c, arg|
-      c.builder.fsub(LLVM::Float(0), arg.compile(c))
+    op :-@, [Float], Float do |arg|
+      builder.fsub(LLVM::Float(0), arg)
     end
     
-    define_primitive :*, [:float], :float do |c, lhs, rhs|
-      c.builder.fmul(lhs.compile(c), rhs.compile(c))
+    op :*, [Float], Float do |lhs, rhs|
+      builder.fmul(lhs, rhs)
     end
     
-    define_primitive :/, [:float], :float do |c, lhs, rhs|
-      c.builder.fdiv(lhs.compile(c), rhs.compile(c))
+    op :/, [Float], Float do |lhs, rhs|
+      builder.fdiv(lhs, rhs)
     end
     
-    define_primitive :%, [:float], :float do |c, lhs, rhs|
-      c.builder.call(c.module.functions[:fmodf], lhs.compile(c), rhs.compile(c))
+    op :%, [Float], Float do |lhs, rhs|
+      builder.call(self.module.functions[:fmodf], lhs, rhs)
     end
     
-    define_primitive :**, [:float], :float do |c, lhs, rhs|
-      c.builder.call(c.module.functions[:powf])
+    op :**, [Float], Float do |lhs, rhs|
+      builder.call(self.module.functions[:powf])
     end
     
-    define_primitive :sin, [:float], :float do |c, arg|
-      c.builder.call(c.module.functions[:sinf], arg.compile(c))
+    op :sin, [Float], Float do |arg|
+      builder.call(self.module.functions[:sinf], arg)
     end
     
-    define_primitive :cos, [:float], :float do |c, arg|
-      c.builder.call(c.module.functions[:cosf], arg.compile(c))
+    op :cos, [Float], Float do |arg|
+      builder.call(self.module.functions[:cosf], arg)
     end
     
-    define_primitive :tan, [:float], :float do |c, arg|
-      c.builder.call(c.module.functions[:tanf], arg.compile(c))
+    op :tan, [Float], Float do |arg|
+      builder.call(self.module.functions[:tanf], arg)
     end
   end
 end

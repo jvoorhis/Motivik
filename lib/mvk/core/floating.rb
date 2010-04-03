@@ -2,52 +2,52 @@ module MVK
   module Core
     
     # Defines the public interface to floating point expressions
-    class Floating
-      def Floating.sin(x)
-        apply(Prototype.new(:sin, [type], type), [x])
+    module Floating
+      def sin
+        type.apply(Prototype.new(:sin, [type], type), [self])
       end
       
-      def Floating.cos(x)
-        apply(Prototype.new(:cos, [type], type), [x])
+      def cos
+        type.apply(Prototype.new(:cos, [type], type), [self])
       end
       
-      def Floating.tan(x)
-        apply(Prototype.new(:tan, [type], type), [x])
+      def tan
+        type.apply(Prototype.new(:tan, [type], type), [self])
       end
       
       def coerce(val)
         case val
-        when self.class then [val, self]
-        else [self.class.literal(val), self]
+        when type then [val, self]
+        else [type.const(val), self]
         end
       end
       
       def -@
-        apply(Prototype.new(:-@, [type], type), [self])
+        type.apply(Prototype.new(:-@, [type], type), [self])
       end
       
       def +(rhs)
-        apply(Prototype.new(:+, [type, type], type), [self, rhs])
+        type.apply(Prototype.new(:+, [type, type], type), [self, rhs])
       end
       
       def -(rhs)
-        apply(Prototype.new(:-, [type, type], type), [self, rhs])
+        type.apply(Prototype.new(:-, [type, type], type), [self, rhs])
       end
       
       def *(rhs)
-        apply(Prototype.new(:*, [type, type], type), [self, rhs])
+        type.apply(Prototype.new(:*, [type, type], type), [self, rhs])
       end
       
       def /(rhs)
-        apply(Prototype.new(:/, [type, type], type), [self, rhs])
+        type.apply(Prototype.new(:/, [type, type], type), [self, rhs])
       end
       
       def %(rhs)
-        apply(Prototype.new(:%, [type, type], type), [self, rhs])
+        type.apply(Prototype.new(:%, [type, type], type), [self, rhs])
       end
       
       def **(rhs)
-        apply(Prototype.new(:**, [type, type], type), [self, rhs])
+        type.apply(Prototype.new(:**, [type, type], type), [self, rhs])
       end
     end
   end

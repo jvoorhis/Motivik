@@ -4,7 +4,7 @@ module MVK
       @primitives ||= {}
     end
     
-    def Core.define_primitive(name, arg_types, ret_type, &impl)
+    def Core.op(name, arg_types, ret_type, &impl)
       Core.primitives[ Prototype.new(name, arg_types, ret_type) ] = impl
     end
   end

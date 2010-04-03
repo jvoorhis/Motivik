@@ -21,8 +21,7 @@ module MVK
   
   module_function
   
-  # Utilites
-  
+  # initialize the system
   def init
     $__mvk_init__ ||= begin
       LLVM.init_x86
@@ -31,11 +30,31 @@ module MVK
     end
   end
   
-  # Library functions
+  # the current time
+  def now
+    Signal.new { |t| t }
+  end
+  
+  def sin(x)
+    Signal.lift(x, &:sin)
+  end
+  
+  def cos(x)
+    Signal.lift(x, &:cos)
+  end
+  
+  def tan(x)
+    Signal.lift(x, &:tan)
+  end
+  
+  # convert frequency in Hertz to radians
+  def hz2rad(hz)
+    2 * Math::PI * hz
+  end
   
   # sine wave oscillator with amplitude amp and frequency fr
   def oscil(amp, fr, phase = 0)
-    amp * cos((2 * Math::PI * fr * now) + phase)
+    amp * cos(hz2rad(fr) * now + phase)
   end
 end
 
@@ -44,12 +63,12 @@ if $0 == __FILE__
   
   dsp = DSP.new { |dsp|
     # Classical FM synthesis
-    fr    = 330    # carrier frequency
-    index = 0.7e-3 # modulation index (depth of FM effect)
-    harm  = 200    # harmonicity ratio (carrier : modulator)
-    dc    = fr - fr * index
-    mod   = oscil(fr * index, harm) + dc
-    fm    = oscil(0.5, fr, mod) * oscil(0.7, 10.0)
+    fr    = 440 # carrier frequency
+    index = 0.7e-2 # modulation index (depth of FM effect)
+    harm  = 100 # harmonicity ratio (carrier : modulator)
+    dc    = fr - fr * index # dc offset
+    mod   = oscil(fr * index, harm) + dc # modulating signal
+    fm    = oscil(0.5, fr, mod)
     
     dsp.out = fm
     dsp.debug = true

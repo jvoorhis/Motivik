@@ -1,104 +1,111 @@
+require 'mvk/core/expression'
+
 module MVK
   module Core
     
     # Signed, native integers
-    class Int
-      def Int.literal(val)
-        IntLit.new(val)
-      end
-      
+    module Int
       def type
-        :int
+        Int
+      end
+      module_function :type
+      
+      def target_type
+        LLVM::Int.type
+      end
+      module_function :target_type
+      
+      def Int.const(val)
+        Const.new(val)
       end
       
-      def coerce(val)
-        case val
-        when Int then [val, self]
-        else [Int.literal(val), self]
-        end
+      def Int.data(data)
+        Data.new(data)
+      end
+      
+      def Int.apply(proto, args)
+        Primitive.new(proto, args)
       end
       
       def +(rhs)
-        apply(Prototype.new(:+, [type, type], type), [self, rhs])
+        Int.apply(Prototype.new(:+, [type, type], type), [self, rhs])
       end
       
       def -(rhs)
-        apply(Prototype.new(:-, [type, type], type), [self, rhs])
+        Int.apply(Prototype.new(:-, [type, type], type), [self, rhs])
       end
       
       def -@(rhs)
-        apply(Prototype.new(:-@, [type], type), [self, rhs])
+        Int.apply(Prototype.new(:-@, [type], type), [self, rhs])
       end
       
       def *(rhs)
-        apply(Prototype.new(:*, [type, type], type), [self, rhs])
+        Int.apply(Prototype.new(:*, [type, type], type), [self, rhs])
       end
       
       def /(rhs)
-        apply(Prototype.new(:/, [type, type], type), [self, rhs])
-      end
-    end
-    
-    def Int(val)
-      Int.literal(0).coerce(val)[0]
-    end
-    module_function :Int
-    
-    class ConstInt < Int
-      def initialize(val)
-        @value = val.to_i
+        Int.apply(Prototype.new(:/, [type, type], type), [self, rhs])
       end
       
-      def compile(context)
-        LLVM::Int(@value)
-      end
-    end
-    
-    class IntData < Int
-      def initialize(data)
-        @data = data
+      def to_f
+        MVK::Core::Float.apply(Prototype.new(:to_f, [type], MVK::Core::Float), [self])
       end
       
-      def compile(context)
-        @data
-      end
-    end
-    
-    class IntPrimitive < Int
-      def initialize(proto, args)
-        @proto = proto
-        @args = args.map { |arg|
-          Int === arg ? arg : MVK::Core::Int(arg)
-        }
+      def to_d
+        MVK::Core::Double.apply(Prototype.new(:to_d, [type], MVK::Core::Double), [self])
       end
       
-      def compile(context)
-        if impl = Core.primitives[@proto]
-          impl.call(context, *@args)
-        else
-          raise NotImplementedError, "#{@proto} is undefined."
+      class Const
+        include Int
+        
+        def initialize(value)
+          @value = value.to_i
+        end
+        
+        def compile(context)
+          LLVM::Int(@value)
         end
       end
+      
+      class Data < MVK::Data
+        include Int
+      end
+      
+      class Cond < MVK::Cond
+        include Int
+      end
+      
+      class Primitive < MVK::Primitive
+        include Int
+      end
     end
     
-    define_primitive :+, [:int, :int], :int do |c, lhs, rhs|
-      c.builder.add(lhs.compile(c), rhs.compile(c))
+    op :+, [Int, Int], Int do |lhs, rhs|
+      builder.add(lhs, rhs)
     end
     
-    define_primitive :-, [:int, :int], :int do |c, lhs, rhs|
-      c.builder.sub(lhs.compile(c), rhs.compile(c))
+    op :-, [Int, Int], Int do |lhs, rhs|
+      builder.sub(lhs, rhs)
     end
     
-    define_primitive :-@, [:int], :int do |c, arg|
-      c.builder.sub(LLVM::Int(0), arg.compile(c))
+    op :-@, [Int], Int do |arg|
+      builder.sub(LLVM::Int(0), arg)
     end
     
-    define_primitive :*, [:int, :int], :int do |c, lhs, rhs|
-      c.builder.mul(lhs.compile(c), rhs.compile(c))
+    op :*, [Int, Int], Int do |lhs, rhs|
+      builder.mul(lhs, rhs)
     end
     
-    define_primitive :/, [:int, :int], :int do |c, lhs, rhs|
-      c.builder.sdiv(lhs.compile(c), rhs.compile(c))
+    op :/, [Int, Int], Int do |lhs, rhs|
+      builder.sdiv(lhs, rhs)
+    end
+    
+    op :to_d, [Int], Double do |arg|
+      builder.si2fp(arg, MVK::Core::Double.target_type)
+    end
+    
+    op :to_f, [Int], Float do |arg|
+      builder.si2fp(arg, MVK::Core::Float.target_type)
     end
   end
 end

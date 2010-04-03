@@ -19,7 +19,7 @@ module MVK
       self.out = Array(out) # treat scalar as a single channel
       self.channels ||= out.size # set channel count
       # truncate and fill undefined channels with silence
-      self.out = Array.new(channels) { |n| FloatingSignal(out[n] || 0) }
+      self.out = Array.new(channels) { |n| MVK::Signal(out[n] || 0) }
       
       @callback = PortAudioCallback.new(out,
                     :sample_rate => sample_rate,

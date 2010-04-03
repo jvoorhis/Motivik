@@ -5,20 +5,12 @@ module MVK
       new { |t| val }
     end
     
-    def const(val)
-      self.class.const(val)
-    end
-    
     def self.lift(*args, &f)
       new { |t|
         f.call(*args.map { |arg|
-          FloatingSignal(arg).call(t)
+          Signal(arg).call(t)
         })
       }
-    end
-    
-    def lift(*args, &f)
-      self.class.lift(*args, &f)
     end
     
     def initialize(&f)
@@ -30,76 +22,22 @@ module MVK
     end
     
     def compose(&g)
-      self.class.new { |t| call g.call(t) }
+      self.class.new { |t| self.call(g.call(t)) }
     end
-  end
-  
-  class FloatingSignal < Signal
-    def coerce(val)
-      case val
-      when FloatingSignal then [val, self]
-      else [const(val), self]
+    
+    def coerce(value)
+      case value
+      when Signal then [value, self]
+      else [Signal.const(value), self]
       end
     end
     
-    def call(t)
-      @f.call(t)
-    end
-    
-    def -@
-      lift(self, &:-@)
-    end
-    
-    def +(rhs)
-      lift(self, rhs, &:+)
-    end
-    
-    def -(rhs)
-      lift(self, rhs, &:-)
-    end
-    
-    def *(rhs)
-      lift(self, rhs, &:*)
-    end
-    
-    def /(rhs)
-      lift(self, rhs, &:/)
-    end
-    
-    def %(rhs)
-      lift(self, rhs, &:%)
-    end
-    
-    def **(rhs)
-      lift(self, rhs, &:**)
+    def method_missing(method, *args)
+      self.class.lift(self, *args, &method)
     end
   end
   
-  module_function
-  
-  def FloatingSignal(sig)
-    FloatingSignal.const(0).coerce(sig)[0]
-  end
-  
-  def now
-    FloatingSignal.new { |t| t }
-  end
-  
-  def sin(x)
-    FloatingSignal.lift(x) { |x|
-      x.class.sin(x)
-    }
-  end
-  
-  def cos(x)
-    FloatingSignal.lift(x) { |x|
-      x.class.cos(x)
-    }
-  end
-  
-  def tan(x)
-    FloatingSignal.lift(x) { |x|
-      x.class.tan(x)
-    }
+  def Signal(value)
+    Signal.const(0).coerce(value)[0]
   end
 end
