@@ -12,8 +12,8 @@ module MVK
       
       def seq(rhs)
         self.class.new { |context|
-          self.call(context)
-          rhs.call(context)
+          self.compile(context)
+          rhs.compile(context)
         }
       end
       
