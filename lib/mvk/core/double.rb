@@ -28,6 +28,13 @@ module MVK
       
       include Floating
       
+      def to_f
+        MVK::Core::Float.apply(
+          Prototype.new(:to_f, [Double], Float),
+          [self]
+        )
+      end
+      
       class Const
         include Double
         
@@ -91,6 +98,10 @@ module MVK
     
     op :tan, [Double], Double do |arg|
       builder.call(self.module.functions[:tan], arg)
+    end
+    
+    op :to_f, [Double], Float do |arg|
+      builder.fp_trunc(arg, LLVM::Float)
     end
   end
 end

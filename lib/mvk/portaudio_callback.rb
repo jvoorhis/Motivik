@@ -64,19 +64,25 @@ module MVK
           end
           
           loop.build do |b|
-            frame  = b.load(frame_ptr)
-            phase_ = b.add(phase, frame)
-            now    = Core::Double.data(
-                       b.fdiv(
-                         b.si2fp(phase_, LLVM::Double),
-                         LLVM::Double(@sample_rate)))
+            context = Core::CompilationContext.new(@module, cback, b)
+            frame   = b.load(frame_ptr)
+            phase_  = b.add(phase, frame)
+            now     = Core::Double.data(
+                        b.fdiv(
+                          b.si2fp(phase_, LLVM::Double),
+                          LLVM::Double(@sample_rate)))
             
             action = outs.map.with_index { |sig, channel|
-              expr = sig.call(now) # sample signal at current time
-              Core::Action.store_sample(expr, output, frame, channel, outs.size)
+              expr         = sig.call(now).to_f # sample signal at current time
+              buffer       = Core::Int.data(b.ptr2int(output, LLVM::Int))
+              sample_width = Core::Int.const(4)
+              frame_width  = sample_width * Core::Int.const(outs.size)
+              sample_index = (Core::Int.const(channel) * sample_width) +
+                             (Core::Int.data(frame) * frame_width)
+              location     = buffer + sample_index
+              Core::Action.store(expr, location, LLVM::Float)
             }.reduce(:seq)
             
-            context = Core::CompilationContext.new(@module, cback, b)
             action.compile(context)
             
             b.store(

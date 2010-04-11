@@ -17,22 +17,15 @@ module MVK
         }
       end
       
-      def self.store_sample(floating_expr, buffer, frame, channel, channel_count)
+      def self.store(v_expr, l_expr, type)
         new { |context|
-          sampled      = floating_expr.compile(context)
-          samplef      = context.builder.fp_trunc(sampled, LLVM::Float)
-          sample_width = LLVM::Int(4)
-          frame_width  = context.builder.mul(sample_width, LLVM::Int(channel_count))
-          sample_index = context.builder.add(
-                           context.builder.mul(LLVM::Int(channel), sample_width),
-                           context.builder.mul(frame, frame_width))
+          value    = v_expr.compile(context)
+          location = l_expr.compile(context)
           context.builder.store(
-            samplef,
+            value,
             context.builder.int2ptr(
-              context.builder.add(
-                context.builder.ptr2int(buffer, LLVM::Int),
-                sample_index),
-              LLVM::Pointer(LLVM::Float)))
+              location,
+              LLVM::Pointer(type)))
         }
       end
     end
