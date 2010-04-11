@@ -27,6 +27,13 @@ module MVK
         Primitive.new(proto, args)
       end
       
+      def coerce(val)
+        case val
+        when type then [val, self]
+        else [type.const(val), self]
+        end
+      end
+      
       def +(rhs)
         Int.apply(Prototype.new(:+, [type, type], type), [self, rhs])
       end
@@ -47,12 +54,18 @@ module MVK
         Int.apply(Prototype.new(:/, [type, type], type), [self, rhs])
       end
       
-      def to_f
-        MVK::Core::Float.apply(Prototype.new(:to_f, [type], MVK::Core::Float), [self])
+      def to_float
+        MVK::Core::Float.apply(
+          Prototype.new(:to_float, [type], MVK::Core::Float),
+          [self]
+        )
       end
       
-      def to_d
-        MVK::Core::Double.apply(Prototype.new(:to_d, [type], MVK::Core::Double), [self])
+      def to_double
+        MVK::Core::Double.apply(
+          Prototype.new(:to_double, [type], MVK::Core::Double),
+          [self]
+        )
       end
       
       class Const
@@ -100,12 +113,12 @@ module MVK
       builder.sdiv(lhs, rhs)
     end
     
-    op :to_d, [Int], Double do |arg|
-      builder.si2fp(arg, MVK::Core::Double.target_type)
+    op :to_double, [Int], Double do |arg|
+      builder.si2fp(arg, Core::Double.target_type)
     end
     
-    op :to_f, [Int], Float do |arg|
-      builder.si2fp(arg, MVK::Core::Float.target_type)
+    op :to_float, [Int], Float do |arg|
+      builder.si2fp(arg, Core::Float.target_type)
     end
   end
 end

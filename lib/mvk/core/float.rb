@@ -28,6 +28,17 @@ module MVK
       
       include Floating
       
+      def to_float
+        self
+      end
+      
+      def to_double
+        MVK::Core::Double.apply(
+          Prototype.new(:to_double, [Float], Double),
+          [self]
+        )
+      end
+      
       class Const
         include Float
         
@@ -91,6 +102,10 @@ module MVK
     
     op :tan, [Float], Float do |arg|
       builder.call(self.module.functions[:tanf], arg)
+    end
+    
+    op :to_double, [Float], Double do |arg|
+      builder.fp_ext(arg, Core::Double.target_type)
     end
   end
 end
