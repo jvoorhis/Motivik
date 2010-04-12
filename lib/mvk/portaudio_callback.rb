@@ -30,8 +30,7 @@ module MVK
     
     def alloc_user_data
       FFI::MemoryPointer.new(
-        LLVM::NATIVE_INT_SIZE/8, # *phase
-        LLVM::NATIVE_INT_SIZE/8  # *score
+        LLVM::NATIVE_INT_SIZE/8
       )
     end
     
@@ -45,61 +44,28 @@ module MVK
           "mvk_portaudio_callback",
           @module.types[:pa_stream_callback]
         ) do |cback, input, output, frame_count, time_info, status_flags, user_data|
-          # Basic blocks
-          entry = cback.basic_blocks.append("entry")
-          loop  = cback.basic_blocks.append("loop")
-          exit  = cback.basic_blocks.append("exit")
+          builder = LLVM::Builder.create
+          context = Core::CompilationContext.new(@module, cback, builder)
+          entry   = cback.basic_blocks.append("entry")
           
-          # Locals
-          phase_ptr = nil
-          phase     = nil
-          frame_ptr = nil # loop induction variable
-          
-          entry.build do |b|
-            phase_ptr = b.struct_gep(user_data, 0)
-            phase     = b.load(phase_ptr)
-            frame_ptr = b.alloca(LLVM::Int)
-            b.store(LLVM::Int(0), frame_ptr)
-            b.br(loop)
-          end
-          
-          loop.build do |b|
-            context = Core::CompilationContext.new(@module, cback, b)
-            frame   = b.load(frame_ptr)
-            phase_  = b.add(phase, frame)
-            now     = Core::Double.data(
-                        b.fdiv(
-                          b.si2fp(phase_, LLVM::Double),
-                          LLVM::Double(@sample_rate)))
-            
-            action = outs.map.with_index { |sig, channel|
-              expr         = sig.call(now).to_f # sample signal at current time
-              buffer       = Core::Int.data(b.ptr2int(output, LLVM::Int))
-              sample_width = Core::Int.const(4)
-              frame_width  = sample_width * Core::Int.const(outs.size)
-              sample_index = (Core::Int.const(channel) * sample_width) +
-                             (Core::Int.data(frame) * frame_width)
-              location     = buffer + sample_index
-              Core::Action.store(expr, location, LLVM::Float)
+          builder.position_at_end(entry)
+          phase_ptr    = builder.struct_gep(user_data, 0)
+          phase        = Core::Int.data(builder.load(phase_ptr))
+          buffer       = Core::Int.data(builder.ptr2int(output, LLVM::Int))
+          sample_width = 4
+          frame_width  = sample_width * outs.size
+          Core::Action.step(Core::Int.data(frame_count)) { |frame|
+            time = (phase + frame).to_double / sample_rate
+            outs.map.with_index { |sig, channel|
+              expr            = sig.call(time).to_float
+              sample_index    = channel * sample_width + frame * frame_width
+              sample_location = buffer + sample_index
+              Core::Action.store(expr, sample_location, LLVM::Float)
             }.reduce(:seq)
-            
-            action.compile(context)
-            
-            b.store(
-              b.add(frame, LLVM::Int(1)),
-              frame_ptr)
-            
-            b.cond(
-              b.icmp(:sgt, frame_count, frame),
-              loop, exit)
-          end
-          
-          exit.build do |b|
-            b.store(
-              b.add(phase, frame_count),
-              phase_ptr)
-            b.ret(LLVM::Int(0))
-          end
+          }.compile(context)
+          next_phase = builder.add(phase.compile(context), frame_count)
+          builder.store(next_phase, phase_ptr)
+          builder.ret(LLVM::Int(0))
         end
       end
       
