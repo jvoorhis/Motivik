@@ -20,7 +20,9 @@ module MVK
       end
       @function = compile_callback!(@module, outs)
       @module.verify!
-      optimize!(@execution_engine, @module)
+      @pass_manager = LLVM::PassManager.new(@execution_engine)
+      passes.reduce(@pass_manager, :<<)
+      @pass_manager.run(@module)
       @module.dump if options[:debug] || $DEBUG
     end
     
@@ -36,6 +38,10 @@ module MVK
     
     def write_initial_user_data(pointer)
       pointer.write_int(0)
+    end
+    
+    def dispose
+      @pass_manager.dispose
     end
     
     private
@@ -72,28 +78,25 @@ module MVK
         end
       end
       
-      def optimize!(execution_engine, mod)
-        # Pass selection is a black art. Provisional passes are modelled after Rubinius.
-        # See http://github.com/evanphx/rubinius/blob/master/vm/llvm/jit.cpp#L466
-        LLVM::PassManager.new(execution_engine) { |pass|
-          pass << :mem2reg <<
-                  :instcombine <<
-                  :reassociate <<
-                  :gvn <<
-                  :dse <<
-                  :instcombine <<
-                  :simplifycfg <<
-                  :gvn <<
-                  :dse <<
-                  :scalarrepl <<
-                  :simplifycfg <<
-                  :instcombine <<
-                  :simplifycfg <<
-                  :dse <<
-                  :simplifycfg <<
-                  :instcombine
-          pass.run(mod)
-        }
+      def passes
+        [
+         :mem2reg,
+         :instcombine,
+         :reassociate,
+         :gvn,
+         :dse,
+         :instcombine,
+         :simplifycfg,
+         :gvn,
+         :dse,
+         :scalarrepl,
+         :simplifycfg,
+         :instcombine,
+         :simplifycfg,
+         :dse,
+         :simplifycfg,
+         :instcombine
+        ]
       end
   end # PortAudioCallback
 end # MVK

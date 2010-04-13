@@ -47,6 +47,7 @@ module MVK
     end
     
     def dispose
+      @callback.dispose
       @user_data.free
       @user_data = nil
     end
