@@ -48,20 +48,20 @@ module MVK
           entry   = func.basic_blocks.append("entry")
           builder.position_at_end(entry)
           
-          context      = Core::CompilationContext.new(@module, func, builder)
-          frame_count  = Core::Int.data(frame_count)
-          phase_ptr    = builder.struct_gep(user_data, 0)
-          phase_addr   = Core::Int.data(builder.ptr2int(phase_ptr, LLVM::Int))
-          phase        = Core::Int.data(builder.load(phase_ptr))
-          buffer       = Core::Int.data(builder.ptr2int(output, LLVM::Int))
-          sample_width = Core::Int.const(4)
-          frame_width  = sample_width * outs.size
+          context     = Core::CompilationContext.new(@module, func, builder)
+          frame_count = Core::Int.data(frame_count)
+          phase_ptr   = builder.struct_gep(user_data, 0)
+          phase_addr  = Core::Int.data(builder.ptr2int(phase_ptr, LLVM::Int))
+          phase       = Core::Int.data(builder.load(phase_ptr))
+          buffer      = Core::Int.data(builder.ptr2int(output, LLVM::Int))
+          sample_size = Core::Int.const(4)
+          frame_size  = sample_size * outs.size
           
           [Core::Action.step(frame_count) { |frame|
              time = (phase + frame).to_double / sample_rate
              outs.map.with_index { |sig, channel|
                expr         = sig.call(time)
-               sample_index = channel * sample_width + frame * frame_width
+               sample_index = channel * sample_size + frame * frame_size
                sample_addr  = buffer + sample_index
                Core::Action.store(expr.to_float, sample_addr, LLVM::Float)
              }.reduce(:seq)
