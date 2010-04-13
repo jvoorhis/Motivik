@@ -10,7 +10,7 @@ module MVK
   class PortAudioCallback
     attr_reader :sample_rate, :sample_format
     
-    def initialize(dsp, options = {})
+    def initialize(outs, options = {})
       @sample_rate = options[:sample_rate]
       @sample_format = :float32
       @module = options.fetch(:module) { ModuleFactory.build }
@@ -18,9 +18,9 @@ module MVK
         provider = LLVM::ModuleProvider.for_existing_module(@module)
         LLVM::ExecutionEngine.create_jit_compiler(provider)
       end
-      compile_callback!(dsp)
-      verify!
-      optimize!
+      @function = compile_callback!(@module, outs)
+      @module.verify!
+      optimize!(@execution_engine, @module)
       @module.dump if options[:debug] || $DEBUG
     end
     
@@ -39,16 +39,16 @@ module MVK
     end
     
     private
-      def compile_callback!(outs)
-        @function = @module.functions.add(
+      def compile_callback!(mod, outs)
+        @function = mod.functions.add(
           "mvk_portaudio_callback",
-          @module.types[:pa_stream_callback]
+          mod.types[:pa_stream_callback]
         ) do |func, input, output, frame_count, time_info, status_flags, user_data|
           builder = LLVM::Builder.create
           entry   = func.basic_blocks.append("entry")
           builder.position_at_end(entry)
           
-          context     = Core::CompilationContext.new(@module, func, builder)
+          context     = Core::CompilationContext.new(mod, func, builder)
           frame_count = Core::Int.data(frame_count)
           phase_ptr   = builder.struct_gep(user_data, 0)
           phase_addr  = Core::Int.data(builder.ptr2int(phase_ptr, LLVM::Int))
@@ -58,7 +58,7 @@ module MVK
           frame_size  = sample_size * outs.size
           
           [Core::Action.step(frame_count) { |frame|
-             time = (phase + frame).to_double / sample_rate
+             time = (phase + frame).to_double / self.sample_rate
              outs.map.with_index { |sig, channel|
                expr         = sig.call(time)
                sample_index = channel * sample_size + frame * frame_size
@@ -72,14 +72,10 @@ module MVK
         end
       end
       
-      def verify!
-        @module.verify!
-      end
-      
-      def optimize!
+      def optimize!(execution_engine, mod)
         # Pass selection is a black art. Provisional passes are modelled after Rubinius.
         # See http://github.com/evanphx/rubinius/blob/master/vm/llvm/jit.cpp#L466
-        LLVM::PassManager.new(@execution_engine) do |pass|
+        LLVM::PassManager.new(execution_engine) { |pass|
           pass << :mem2reg <<
                   :instcombine <<
                   :reassociate <<
@@ -96,8 +92,8 @@ module MVK
                   :dse <<
                   :simplifycfg <<
                   :instcombine
-          pass.run(@module)
-        end
+          pass.run(mod)
+        }
       end
   end # PortAudioCallback
 end # MVK
