@@ -43,29 +43,32 @@ module MVK
         @function = @module.functions.add(
           "mvk_portaudio_callback",
           @module.types[:pa_stream_callback]
-        ) do |cback, input, output, frame_count, time_info, status_flags, user_data|
+        ) do |func, input, output, frame_count, time_info, status_flags, user_data|
           builder = LLVM::Builder.create
-          context = Core::CompilationContext.new(@module, cback, builder)
-          entry   = cback.basic_blocks.append("entry")
-          
+          entry   = func.basic_blocks.append("entry")
           builder.position_at_end(entry)
+          
+          context      = Core::CompilationContext.new(@module, func, builder)
+          frame_count  = Core::Int.data(frame_count)
           phase_ptr    = builder.struct_gep(user_data, 0)
+          phase_addr   = Core::Int.data(builder.ptr2int(phase_ptr, LLVM::Int))
           phase        = Core::Int.data(builder.load(phase_ptr))
           buffer       = Core::Int.data(builder.ptr2int(output, LLVM::Int))
-          sample_width = 4
+          sample_width = Core::Int.const(4)
           frame_width  = sample_width * outs.size
-          Core::Action.step(Core::Int.data(frame_count)) { |frame|
-            time = (phase + frame).to_double / sample_rate
-            outs.map.with_index { |sig, channel|
-              expr            = sig.call(time).to_float
-              sample_index    = channel * sample_width + frame * frame_width
-              sample_location = buffer + sample_index
-              Core::Action.store(expr, sample_location, LLVM::Float)
-            }.reduce(:seq)
-          }.compile(context)
-          next_phase = builder.add(phase.compile(context), frame_count)
-          builder.store(next_phase, phase_ptr)
-          builder.ret(LLVM::Int(0))
+          
+          [Core::Action.step(frame_count) { |frame|
+             time = (phase + frame).to_double / sample_rate
+             outs.map.with_index { |sig, channel|
+               expr         = sig.call(time)
+               sample_index = channel * sample_width + frame * frame_width
+               sample_addr  = buffer + sample_index
+               Core::Action.store(expr.to_float, sample_addr, LLVM::Float)
+             }.reduce(:seq)
+           },
+           Core::Action.store(phase + frame_count, phase_addr, LLVM::Int),
+           Core::Action.return(Core::Int.const(0))
+          ].reduce(:seq).compile(context)
         end
       end
       

@@ -17,12 +17,12 @@ module MVK
         }
       end
       
-      def self.store(value_expr, location_expr, type)
+      def self.store(value_expr, addr_expr, type)
         new { |context|
-          value        = value_expr.compile(context)
-          location_int = location_expr.compile(context)
-          location     = context.builder.int2ptr(location_int, LLVM::Pointer(type))
-          context.builder.store(value, location)
+          value    = value_expr.compile(context)
+          addr_int = addr_expr.compile(context)
+          addr     = context.builder.int2ptr(addr_int, LLVM::Pointer(type))
+          context.builder.store(value, addr)
         }
       end
       
@@ -45,6 +45,12 @@ module MVK
           context.builder.cond(continue, body, exit)
           context.builder.position_at_end(exit)
           nil
+        }
+      end
+      
+      def self.return(expr)
+        new { |context|
+          context.builder.ret(expr.compile(context))
         }
       end
     end
