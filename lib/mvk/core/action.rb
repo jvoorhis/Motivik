@@ -10,11 +10,15 @@ module MVK
         @compile_proc.call(context)
       end
       
-      def seq(rhs)
-        self.class.new { |context|
-          self.compile(context)
-          rhs.compile(context)
+      def bind
+        Action.new { |context|
+          val = self.compile(context)
+          yield(val).compile(context)
         }
+      end
+      
+      def seq(rhs)
+        bind { rhs }
       end
       
       def self.store(value_expr, addr_expr, type)
@@ -23,6 +27,7 @@ module MVK
           addr_int = addr_expr.compile(context)
           addr     = context.builder.int2ptr(addr_int, LLVM::Pointer(type))
           context.builder.store(value, addr)
+          nil
         }
       end
       
@@ -51,6 +56,7 @@ module MVK
       def self.return(expr)
         new { |context|
           context.builder.ret(expr.compile(context))
+          nil
         }
       end
     end
