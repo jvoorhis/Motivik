@@ -63,12 +63,16 @@ if $0 == __FILE__
   
   dsp = DSP.new { |dsp|
     # Classical FM synthesis
-    fr    = 440 # carrier frequency
-    index = 0.7e-2 # modulation index (depth of FM effect)
-    harm  = 100 # harmonicity ratio (carrier : modulator)
+    fr    = 330 # carrier frequency
+    index = 0.7e-3 # modulation index (depth of FM effect)
+    harm  = 200 # harmonicity ratio (carrier : modulator)
     dc    = fr - fr * index # dc offset
     mod   = oscil(fr * index, harm) + dc # modulating signal
     fm    = oscil(0.5, fr, mod)
+    
+    # Very simple additive synthesis
+    n   = 5
+    add = Array.new(n) { |h| oscil(0.9/(h+1), fr*(h+1)) }.reduce(:+) / n.to_f
     
     dsp.out = fm
     dsp.debug = true
