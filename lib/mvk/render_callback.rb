@@ -65,12 +65,12 @@ module MVK
           status = Core::Int.const(0) # instruct PortAudio to continue
           
           Core::Int.const(0).upto(frame_count) { |frame|
-            time = (phase + frame).to_double / self.sample_rate
+            time = (phase + frame).to_double / sample_rate
             outs.map.with_index { |sig, channel|
-              expr = sig.call(time)
+              sample = sig.call(time)
               sample_index = channel * sample_size + frame * frame_size
               sample_addr = buffer + sample_index
-              expr.to_float.poke(sample_addr)
+              sample.to_float.poke(sample_addr)
             }.reduce(:seq)
           }.seq(
             next_phase.poke(phase_addr)
