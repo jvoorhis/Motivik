@@ -52,13 +52,6 @@ module MVK
           nil
         }
       end
-      
-      def self.return(expr)
-        new { |context|
-          context.builder.ret(expr.compile(context))
-          nil
-        }
-      end
     end
   end
 end

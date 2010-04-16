@@ -72,9 +72,9 @@ module MVK
             }.reduce(:seq)
           }.seq(
             Core::Action.store(phase + frame_count, phase_addr, Core::Int)
-          ).seq(
-            Core::Action.return(Core::Int.const(0))
           ).compile(context)
+          
+          builder.ret(LLVM::Int(0))
         end
       end
       
