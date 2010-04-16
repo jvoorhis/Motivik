@@ -49,6 +49,14 @@ module MVK
         type.apply(Prototype.new(:or, [type, type], type), [self, rhs])
       end
       
+      def xor(rhs)
+        type.apply(Prototype.new(:xor, [type, type], type), [self, rhs])
+      end
+      
+      def not
+        type.apply(Prototype.new(:xor, [type], type), [self])
+      end
+      
       class Const
         include Bool
         
@@ -78,9 +86,19 @@ module MVK
     end
     
     op :and, [Bool, Bool], Bool do |lhs, rhs|
+      builder.and(lhs, rhs)
     end
     
     op :or, [Bool, Bool], Bool do |lhs, rhs|
+      builder.or(lhs, rhs)
+    end
+    
+    op :xor, [Bool, Bool], Bool do |lhs, rhs|
+      builder.xor(lhs, rhs)
+    end
+    
+    op :not, [Bool], Bool do |arg|
+      builder.not(arg)
     end
   end
 end
