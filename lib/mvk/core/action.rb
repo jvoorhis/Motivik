@@ -25,7 +25,7 @@ module MVK
         new { |context|
           value    = value_expr.compile(context)
           addr_int = addr_expr.compile(context)
-          addr     = context.builder.int2ptr(addr_int, LLVM::Pointer(type))
+          addr     = context.builder.int2ptr(addr_int, LLVM::Pointer(type.target_type))
           context.builder.store(value, addr)
           nil
         }

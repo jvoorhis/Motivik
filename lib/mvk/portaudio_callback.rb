@@ -68,10 +68,10 @@ module MVK
               expr         = sig.call(time)
               sample_index = channel * sample_size + frame * frame_size
               sample_addr  = buffer + sample_index
-              Core::Action.store(expr.to_float, sample_addr, LLVM::Float)
+              Core::Action.store(expr.to_float, sample_addr, Core::Float)
             }.reduce(:seq)
           }.seq(
-            Core::Action.store(phase + frame_count, phase_addr, LLVM::Int)
+            Core::Action.store(phase + frame_count, phase_addr, Core::Int)
           ).seq(
             Core::Action.return(Core::Int.const(0))
           ).compile(context)
