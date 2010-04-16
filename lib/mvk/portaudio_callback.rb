@@ -18,7 +18,7 @@ module MVK
         provider = LLVM::ModuleProvider.for_existing_module(@module)
         LLVM::ExecutionEngine.create_jit_compiler(provider)
       end
-      @function = compile_callback!(@module, outs)
+      @callback = compile_callback!(@module, outs)
       @module.verify!
       @pass_manager = LLVM::PassManager.new(@execution_engine)
       passes.reduce(@pass_manager, :<<)
@@ -27,7 +27,7 @@ module MVK
     end
     
     def to_ptr
-      @execution_engine.pointer_to_global(@function)
+      @execution_engine.pointer_to_global(@callback)
     end
     
     def alloc_user_data
@@ -46,7 +46,7 @@ module MVK
     
     private
       def compile_callback!(mod, outs)
-        @function = mod.functions.add(
+        mod.functions.add(
           "mvk_portaudio_callback",
           mod.types[:pa_stream_callback]
         ) do |func, input, output, frame_count, time_info, status_flags, user_data|
