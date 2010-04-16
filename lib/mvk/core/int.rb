@@ -35,6 +35,7 @@ module MVK
       end
       
       include Primitive
+      include Storable
       
       def +(rhs)
         Int.apply(Prototype.new(:+, [type, type], type), [self, rhs])

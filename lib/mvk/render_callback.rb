@@ -61,7 +61,8 @@ module MVK
           buffer = Core::Int.data(builder.ptr2int(output, LLVM::Int))
           sample_size = Core::Int.const(4)
           frame_size = sample_size * outs.size
-          status = Core::Int.const(0) # instruct PortAudio to continue 
+          next_phase = phase + frame_count # value of phase_ptr for next invocation
+          status = Core::Int.const(0) # instruct PortAudio to continue
           
           Core::Action.step(frame_count) { |frame|
             time = (phase + frame).to_double / self.sample_rate
@@ -69,10 +70,10 @@ module MVK
               expr = sig.call(time)
               sample_index = channel * sample_size + frame * frame_size
               sample_addr = buffer + sample_index
-              Core::Action.store(expr.to_float, sample_addr, Core::Float)
+              expr.to_float.poke(sample_addr)
             }.reduce(:seq)
           }.seq(
-            Core::Action.store(phase + frame_count, phase_addr, Core::Int)
+            next_phase.poke(phase_addr)
           ).compile(context)
           
           builder.ret(status.compile(context))

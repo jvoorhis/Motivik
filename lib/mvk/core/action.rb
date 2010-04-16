@@ -21,16 +21,6 @@ module MVK
         bind { rhs }
       end
       
-      def self.store(value_expr, addr_expr, type)
-        new { |context|
-          value    = value_expr.compile(context)
-          addr_int = addr_expr.compile(context)
-          addr     = context.builder.int2ptr(addr_int, LLVM::Pointer(type.target_type))
-          context.builder.store(value, addr)
-          nil
-        }
-      end
-      
       def self.step(bound_expr)
         new { |context|
           bound = bound_expr.compile(context)

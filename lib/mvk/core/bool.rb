@@ -40,6 +40,7 @@ module MVK
       end
       
       include Primitive
+      include Storable
       
       def and(rhs)
         type.apply(Prototype.new(:and, [type, type], type), [self, rhs])
