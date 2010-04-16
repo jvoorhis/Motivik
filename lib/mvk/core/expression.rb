@@ -1,5 +1,12 @@
 module MVK
   
+  module Size
+    # Int-valued size in bytes
+    def size
+      MVK::Core::Int.data(target_type.size)
+    end
+  end
+  
   class Data
     def initialize(data)
       @data = data

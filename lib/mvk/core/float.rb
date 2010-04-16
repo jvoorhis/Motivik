@@ -26,6 +26,7 @@ module MVK
         Primitive.new(proto, args)
       end
       
+      include Size
       include Floating
       
       def to_float

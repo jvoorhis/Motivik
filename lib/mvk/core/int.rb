@@ -34,6 +34,8 @@ module MVK
         end
       end
       
+      include Size
+      
       def +(rhs)
         Int.apply(Prototype.new(:+, [type, type], type), [self, rhs])
       end
