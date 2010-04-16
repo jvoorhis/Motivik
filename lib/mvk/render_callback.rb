@@ -1,9 +1,9 @@
-require 'mvk/signal'
-require 'mvk/core'
-
 require 'llvm/core'
 require 'llvm/execution_engine'
 require 'llvm/transforms/scalar'
+
+require 'mvk/signal'
+require 'mvk/core'
 require 'mvk/module_factory'
 
 module MVK
@@ -59,7 +59,7 @@ module MVK
           phase = Core::Int.data(builder.load(phase_ptr))
           frame_count = Core::Int.data(frame_count)
           buffer = Core::Int.data(builder.ptr2int(output, LLVM::Int))
-          sample_size = Core::Int.const(4)
+          sample_size = Core::Float.size
           frame_size = sample_size * outs.size
           next_phase = phase + frame_count # value of phase_ptr for next invocation
           status = Core::Int.const(0) # instruct PortAudio to continue
@@ -100,5 +100,5 @@ module MVK
          :instcombine
         ]
       end
-  end # PortAudioCallback
-end # MVK
+  end
+end

@@ -1,19 +1,32 @@
 module MVK
   
   module Primitive
-    # Int-valued size in bytes
-    def size
-      Core::Int.data(target_type.size)
+    def self.included(mod)
+      mod.extend(ClassMethods)
+      mod.send(:include, InstanceMethods)
     end
     
-    def poke(addr_expr)
-      Core::Action.new { |context|
-        value = compile(context)
-        addr_int = addr_expr.compile(context)
-        addr = context.builder.int2ptr(addr_int, LLVM::Pointer(type.target_type))
-        context.builder.store(value, addr)
-        nil
-      }
+    module ClassMethods
+      def size
+        Core::Int.data(target_type.size)
+      end
+    end
+    
+    module InstanceMethods
+      # Int-valued size in bytes
+      def size
+        self.class.size
+      end
+      
+      def poke(addr_expr)
+        Core::Action.new { |context|
+          value = compile(context)
+          addr_int = addr_expr.compile(context)
+          addr = context.builder.int2ptr(addr_int, LLVM::Pointer(type.target_type))
+          context.builder.store(value, addr)
+          nil
+        }
+      end
     end
   end
   
