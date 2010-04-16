@@ -1,6 +1,10 @@
-module MVK; module Core;
-  module Double; end
-end end
+# Forward-declaration of Double to break cycle between float.rb and double.rb.
+module MVK
+  module Core
+    module Double
+    end
+  end
+end
 
 require 'mvk/core/context'
 require 'mvk/core/expression'
