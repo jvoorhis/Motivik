@@ -7,7 +7,7 @@ require 'llvm/transforms/scalar'
 require 'mvk/module_factory'
 
 module MVK
-  class PortAudioCallback
+  class RenderCallback
     attr_reader :sample_rate, :sample_format
     
     def initialize(outs, options = {})
@@ -50,25 +50,25 @@ module MVK
           "mvk_portaudio_callback",
           mod.types[:pa_stream_callback]
         ) do |func, input, output, frame_count, time_info, status_flags, user_data|
-          entry   = func.basic_blocks.append("entry")
+          entry = func.basic_blocks.append("entry")
           builder = LLVM::Builder.create.position_at_end(entry)
           context = Core::CompilationContext.new(mod, func, builder)
           
-          phase_ptr   = builder.struct_gep(user_data, 0)
-          phase_addr  = Core::Int.data(builder.ptr2int(phase_ptr, LLVM::Int))
-          phase       = Core::Int.data(builder.load(phase_ptr))
+          phase_ptr = builder.struct_gep(user_data, 0)
+          phase_addr = Core::Int.data(builder.ptr2int(phase_ptr, LLVM::Int))
+          phase = Core::Int.data(builder.load(phase_ptr))
           frame_count = Core::Int.data(frame_count)
-          buffer      = Core::Int.data(builder.ptr2int(output, LLVM::Int))
+          buffer = Core::Int.data(builder.ptr2int(output, LLVM::Int))
           sample_size = Core::Int.const(4)
-          frame_size  = sample_size * outs.size
-          status      = Core::Int.const(0) # instruct PortAudio to continue 
+          frame_size = sample_size * outs.size
+          status = Core::Int.const(0) # instruct PortAudio to continue 
           
           Core::Action.step(frame_count) { |frame|
             time = (phase + frame).to_double / self.sample_rate
             outs.map.with_index { |sig, channel|
-              expr         = sig.call(time)
+              expr = sig.call(time)
               sample_index = channel * sample_size + frame * frame_size
-              sample_addr  = buffer + sample_index
+              sample_addr = buffer + sample_index
               Core::Action.store(expr.to_float, sample_addr, Core::Float)
             }.reduce(:seq)
           }.seq(
