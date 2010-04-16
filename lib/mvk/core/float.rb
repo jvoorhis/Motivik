@@ -23,7 +23,7 @@ module MVK
       end
       
       def Float.apply(proto, args)
-        Primitive.new(proto, args)
+        Application.new(proto, args)
       end
       
       include Size
@@ -60,7 +60,7 @@ module MVK
         include Float
       end
       
-      class Primitive < MVK::Primitive
+      class Application < MVK::Application
         include Float
       end
     end

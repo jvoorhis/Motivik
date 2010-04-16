@@ -24,7 +24,7 @@ module MVK
       end
       
       def Int.apply(proto, args)
-        Primitive.new(proto, args)
+        Application.new(proto, args)
       end
       
       def coerce(val)
@@ -90,7 +90,7 @@ module MVK
         include Int
       end
       
-      class Primitive < MVK::Primitive
+      class Application < MVK::Application
         include Int
       end
     end

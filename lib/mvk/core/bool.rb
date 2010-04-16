@@ -29,7 +29,7 @@ module MVK
       end
       
       def Bool.apply(proto, args)
-        Primitive.new(proto, args)
+        Application.new(proto, args)
       end
       
       def coerce(value)
@@ -72,7 +72,7 @@ module MVK
         include Bool
       end
       
-      class Primitive < MVK::Primitive
+      class Application < MVK::Application
         include Bool
       end
     end

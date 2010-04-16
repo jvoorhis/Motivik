@@ -48,7 +48,7 @@ module MVK
     end
   end
   
-  class Primitive
+  class Application
     def initialize(proto, args)
       @proto = proto
       @args = args.zip(proto.arg_types).map { |(arg, type)|
