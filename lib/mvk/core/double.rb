@@ -31,7 +31,7 @@ module MVK
       include Storable
       
       def to_float
-        MVK::Core::Float.apply(
+        Float.apply(
           Prototype.new(:to_float, [Double], Float),
           [self]
         )

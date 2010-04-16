@@ -58,17 +58,40 @@ module MVK
       end
       
       def to_float
-        MVK::Core::Float.apply(
-          Prototype.new(:to_float, [type], MVK::Core::Float),
+        Float.apply(
+          Prototype.new(:to_float, [type], Float),
           [self]
         )
       end
       
       def to_double
-        MVK::Core::Double.apply(
-          Prototype.new(:to_double, [type], MVK::Core::Double),
+        Double.apply(
+          Prototype.new(:to_double, [type], Double),
           [self]
         )
+      end
+      
+      def upto(upper_bound)
+        Action.new { |context|
+          initial_value = compile(context)
+          bound = upper_bound.compile(context)
+          body = context.function.basic_blocks.append("body")
+          exit = context.function.basic_blocks.append("exit")
+          
+          induction_var = context.builder.alloca(LLVM::Int)
+          context.builder.store(initial_value, induction_var)
+          context.builder.br(body)
+          
+          context.builder.position_at_end(body)
+          induction_value = context.builder.load(induction_var)
+          yield(Core::Int.data(induction_value)).compile(context)
+          induction_value = context.builder.add(LLVM::Int(1), induction_value)
+          context.builder.store(induction_value, induction_var)
+          continue = context.builder.icmp(:slt, induction_value, bound)
+          context.builder.cond(continue, body, exit)
+          context.builder.position_at_end(exit)
+          nil
+        }
       end
       
       class Const

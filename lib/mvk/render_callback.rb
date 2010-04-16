@@ -64,7 +64,7 @@ module MVK
           next_phase = phase + frame_count # value of phase_ptr for next invocation
           status = Core::Int.const(0) # instruct PortAudio to continue
           
-          Core::Action.step(frame_count) { |frame|
+          Core::Int.const(0).upto(frame_count) { |frame|
             time = (phase + frame).to_double / self.sample_rate
             outs.map.with_index { |sig, channel|
               expr = sig.call(time)
