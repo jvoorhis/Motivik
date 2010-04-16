@@ -28,7 +28,6 @@ module MVK
       
       include Primitive
       include Floating
-      include Storable
       
       def to_float
         Float.apply(
