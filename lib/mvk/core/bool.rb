@@ -39,7 +39,7 @@ module MVK
         end
       end
       
-      include Size
+      include Primitive
       
       def and(rhs)
         type.apply(Prototype.new(:and, [type, type], type), [self, rhs])

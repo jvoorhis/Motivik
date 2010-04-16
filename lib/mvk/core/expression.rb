@@ -1,6 +1,6 @@
 module MVK
   
-  module Size
+  module Primitive
     # Int-valued size in bytes
     def size
       MVK::Core::Int.data(target_type.size)
